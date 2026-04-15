@@ -80,6 +80,7 @@ def load_gsc(path):
             df["CTR"]
             .astype(str)
             .str.replace("%", "", regex=False)
+            .str.replace(",", ".", regex=False)
             .astype(float)
             .fillna(0)
         )
