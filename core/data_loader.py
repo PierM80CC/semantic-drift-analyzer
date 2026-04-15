@@ -43,6 +43,11 @@ def load_gsc(path):
     from io import BytesIO
     df = pd.read_csv(BytesIO(raw), encoding=encoding)
 
+    # --- Clean column names (strip BOM and invisible chars) ---
+    df.columns = df.columns.str.replace('\ufeff', '', regex=False).str.strip()
+    print(f"[load_gsc] Detected encoding: {encoding}")
+    print(f"[load_gsc] Columns: {df.columns.tolist()}")
+
     # --- Identify URL column (EN + FR GSC exports) ---
     url_aliases = {
         "page": "Page",
