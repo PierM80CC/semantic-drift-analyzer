@@ -43,18 +43,30 @@ def load_gsc(path):
     from io import BytesIO
     df = pd.read_csv(BytesIO(raw), encoding=encoding)
 
-    # --- Identify URL column ---
-    if "Page" in df.columns:
-        page_col = "Page"
-    elif "Top pages" in df.columns:
-        page_col = "Top pages"
-    elif "Top Pages" in df.columns:
-        page_col = "Top Pages"
-    else:
-        raise KeyError("Expected 'Page' or 'Top pages' column in GSC export.")
+    # --- Identify URL column (EN + FR GSC exports) ---
+    url_aliases = {
+        "page": "Page",
+        "top pages": "Page",
+        "pages les plus populaires": "Page",
+    }
+    page_col = None
+    for col in df.columns:
+        normalized = col.strip().lower()
+        if normalized in url_aliases:
+            page_col = col
+            break
+    if not page_col:
+        raise KeyError("Expected 'Page' or 'Top pages' or 'Pages les plus populaires' column in GSC export.")
 
     df.rename(columns={page_col: "Page"}, inplace=True)
     df["Page"] = df["Page"].apply(normalise_url)
+
+    # --- Rename FR columns to EN equivalents ---
+    fr_to_en = {
+        "Clics": "Clicks",
+        "clics": "Clicks",
+    }
+    df.rename(columns={k: v for k, v in fr_to_en.items() if k in df.columns}, inplace=True)
 
     # --- Clean numeric columns ---
     num_cols = ["Clicks", "Impressions", "Position"]
@@ -79,7 +91,7 @@ def merge_data(sf_df, gsc_df):
     # --- 1. Ensure the GSC URL column is standardised ---
     gsc_url_cols = [
         c for c in gsc_df.columns
-        if c.strip().lower().replace(" ", "") in ["page", "toppages"]
+        if c.strip().lower().replace(" ", "") in ["page", "toppages", "pageslespluspopulaires"]
     ]
 
     if not gsc_url_cols:
